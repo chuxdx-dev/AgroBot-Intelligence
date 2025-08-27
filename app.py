@@ -51,23 +51,12 @@ def main():
         auto_refresh = st.checkbox("Auto-refresh (5 min)", value=True)
         refresh_interval = st.slider("Refresh Interval (minutes)", 1, 30, 5)
         
-        st.header("📊 Display Options")
-        show_alerts = st.checkbox("Show Alerts", value=True)
-        show_recommendations = st.checkbox("Show AI Recommendations", value=True)
-        show_weather = st.checkbox("Show Weather Data", value=True)
-        show_trends = st.checkbox("Show Historical Trends", value=True)
-        
         # Manual refresh button
         if st.button("🔄 Refresh Data"):
             st.rerun()
-    
-    # Auto-refresh logic
-    if auto_refresh:
-        placeholder = st.empty()
-        with placeholder:
-            st.info(f"Auto-refreshing every {refresh_interval} minutes...")
-            time.sleep(2)
-            placeholder.empty()
+        
+        # System status in sidebar
+        st.header("📊 System Status")
     
     try:
         # Fetch real-time sensor data
@@ -93,47 +82,117 @@ def main():
         # Generate AI recommendations
         recommendations = ai.generate_recommendations(processed_data, weather_data, forecast_data)
         
-        # Display alerts
-        if show_alerts:
-            alerts.display_critical_alerts(processed_data, weather_data)
-        
-        # Main dashboard
-        dashboard.display_overview(processed_data, weather_data)
-        
-        # Create columns for layout
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            # Sensor data visualizations
-            st.header("📊 Real-time Sensor Readings")
-            viz.display_sensor_gauges(sensor_data)
+        # Display system overview in sidebar
+        with st.sidebar:
+            data_quality = processed_data.get('data_quality', {})
+            freshness = data_quality.get('freshness', 'unknown')
+            completeness = data_quality.get('completeness', 0)
             
-            if show_trends:
-                st.header("📈 Historical Trends")
-                viz.display_trend_charts(historical_data)
+            if freshness == 'excellent':
+                st.success(f"✅ Data Quality: {completeness:.0f}%")
+            elif freshness == 'good':
+                st.info(f"ℹ️ Data Quality: {completeness:.0f}%")
+            else:
+                st.warning(f"⚠️ Data Quality: {completeness:.0f}%")
         
-        with col2:
-            # Weather information
-            if show_weather:
-                st.header("🌤️ Weather Information")
-                viz.display_weather_info(weather_data, forecast_data)
-            
-            # Location map
-            st.header("📍 Robot Location")
-            viz.display_location_map(lat, lon, weather_data)
+        # Critical alerts at the top
+        alerts.display_critical_alerts(processed_data, weather_data)
         
-        # AI Recommendations section
-        if show_recommendations:
+        # Main tabbed interface
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "🧠 AI Recommendations", 
+            "🌤️ Weather Forecast", 
+            "📍 Location & Map", 
+            "📊 Analytics", 
+            "📈 History & Reports"
+        ])
+        
+        with tab1:
             st.header("🧠 AI Agricultural Recommendations")
             dashboard.display_recommendations(recommendations)
+            
+            # Quick sensor overview
+            st.subheader("📊 Current Sensor Readings")
+            dashboard.display_overview(processed_data, weather_data)
         
-        # Comparison charts
-        st.header("🔍 Weather vs Sensor Data Analysis")
-        viz.display_comparison_charts(processed_data, weather_data, forecast_data)
+        with tab2:
+            st.header("🌤️ Weather Information & Forecast")
+            if weather_data:
+                viz.display_weather_info(weather_data, forecast_data)
+                
+                # Weather vs sensor comparison
+                st.subheader("🔍 Weather vs Sensor Analysis")
+                viz.display_comparison_charts(processed_data, weather_data, forecast_data)
+            else:
+                st.warning("Weather data unavailable")
         
-        # Data export section
-        st.header("💾 Data Export")
-        dashboard.display_export_options(processed_data, weather_data)
+        with tab3:
+            st.header("📍 Robot Location & Field Map")
+            viz.display_location_map(lat, lon, weather_data)
+            
+            # Location details
+            st.subheader("📍 Coordinates")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Latitude", f"{lat:.6f}°N")
+            with col2:
+                st.metric("Longitude", f"{lon:.6f}°E")
+        
+        with tab4:
+            st.header("📊 Real-time Analytics")
+            
+            # Sensor gauges
+            st.subheader("📊 Sensor Readings")
+            viz.display_sensor_gauges(sensor_data)
+            
+            # Statistical analysis
+            if processed_data.get('statistics'):
+                st.subheader("📈 Statistical Analysis")
+                stats = processed_data['statistics']
+                
+                # Create stats display
+                for sensor, stat_data in stats.items():
+                    with st.expander(f"📊 {sensor} Statistics"):
+                        scol1, scol2, scol3 = st.columns(3)
+                        with scol1:
+                            st.metric("Average", f"{stat_data['mean']:.2f}")
+                            st.metric("Minimum", f"{stat_data['min']:.2f}")
+                        with scol2:
+                            st.metric("Maximum", f"{stat_data['max']:.2f}")
+                            st.metric("Std Dev", f"{stat_data['std']:.2f}")
+                        with scol3:
+                            st.metric("Median", f"{stat_data['median']:.2f}")
+                            st.metric("Data Points", f"{stat_data['count']}")
+        
+        with tab5:
+            st.header("📈 Historical Data & Reports")
+            
+            # Historical trends
+            if not historical_data.empty:
+                st.subheader("📈 Trend Analysis")
+                viz.display_trend_charts(historical_data)
+                
+                # Trend summary
+                trends = processed_data.get('trends', {})
+                if trends:
+                    st.subheader("📊 Trend Summary")
+                    trend_data = []
+                    for param, trend_info in trends.items():
+                        trend_data.append({
+                            'Parameter': param,
+                            'Direction': trend_info['direction'].title(),
+                            'Strength': f"{trend_info['strength']:.2f}",
+                            'Recent Change': f"{trend_info['recent_change_pct']:.1f}%"
+                        })
+                    
+                    trend_df = pd.DataFrame(trend_data)
+                    st.dataframe(trend_df, use_container_width=True)
+            else:
+                st.warning("No historical data available for trend analysis")
+            
+            # Data export
+            st.subheader("💾 Data Export")
+            dashboard.display_export_options(processed_data, weather_data)
         
     except Exception as e:
         st.error(f"❌ Application Error: {str(e)}")
