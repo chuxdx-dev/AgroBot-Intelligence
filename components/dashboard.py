@@ -17,11 +17,12 @@ class Dashboard:
         """Display overview dashboard with key metrics"""
         st.header("🌟 System Overview")
         
-        # Create metrics columns
-        col1, col2, col3, col4 = st.columns(4)
-        
         current_data = processed_data.get('current', {})
         data_quality = processed_data.get('data_quality', {})
+        
+        # Primary sensor readings - First row
+        st.subheader("📊 Current Sensor Readings")
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             temp = current_data.get('Temperature', 0)
@@ -63,6 +64,133 @@ class Dashboard:
                 delta=None
             )
             st.markdown(f"{freshness_icon} Freshness: {freshness.title()}")
+        
+        # Nutrient levels - Second row
+        st.subheader("🧪 Nutrient Levels (NPK)")
+        ncol1, ncol2, ncol3, ncol4 = st.columns(4)
+        
+        with ncol1:
+            nitrogen = current_data.get('Nitrogen', 0)
+            nitrogen_color = '🟢' if nitrogen >= 20 else '🟡' if nitrogen >= 10 else '🔴'
+            st.metric(
+                label="🔵 Nitrogen (N)",
+                value=f"{nitrogen:.1f} ppm",
+                delta=None
+            )
+            st.markdown(f"{nitrogen_color} Status: {'Good' if nitrogen >= 20 else 'Low' if nitrogen >= 10 else 'Critical'}")
+        
+        with ncol2:
+            phosphorus = current_data.get('Phosphorus', 0)
+            phosphorus_color = '🟢' if 15 <= phosphorus <= 40 else '🟡' if 10 <= phosphorus <= 50 else '🔴'
+            st.metric(
+                label="🟠 Phosphorus (P)",
+                value=f"{phosphorus:.1f} ppm",
+                delta=None
+            )
+            st.markdown(f"{phosphorus_color} Status: {'Good' if 15 <= phosphorus <= 40 else 'Monitor'}")
+        
+        with ncol3:
+            potassium = current_data.get('Potassium', 0)
+            potassium_color = '🟢' if potassium >= 20 else '🟡' if potassium >= 10 else '🔴'
+            st.metric(
+                label="🟡 Potassium (K)",
+                value=f"{potassium:.1f} ppm",
+                delta=None
+            )
+            st.markdown(f"{potassium_color} Status: {'Good' if potassium >= 20 else 'Low' if potassium >= 10 else 'Critical'}")
+        
+        with ncol4:
+            # NPK Balance Score
+            npk_score = 0
+            if nitrogen > 0 and phosphorus > 0 and potassium > 0:
+                n_score = min(nitrogen/30*100, 100)
+                p_score = min(phosphorus/25*100, 100)
+                k_score = min(potassium/30*100, 100)
+                npk_score = (n_score + p_score + k_score) / 3
+            
+            npk_color = '🟢' if npk_score >= 70 else '🟡' if npk_score >= 40 else '🔴'
+            st.metric(
+                label="⚖️ NPK Balance",
+                value=f"{npk_score:.0f}%",
+                delta=None
+            )
+            st.markdown(f"{npk_color} Status: {'Balanced' if npk_score >= 70 else 'Needs Attention'}")
+        
+        # Soil conductivity - Third row
+        st.subheader("⚡ Soil Conductivity & Salts")
+        scol1, scol2, scol3, scol4 = st.columns(4)
+        
+        with scol1:
+            conductivity = current_data.get('Conductivity', 0)
+            conductivity_color = '🟢' if conductivity < 200 else '🟡' if conductivity < 300 else '🔴'
+            st.metric(
+                label="⚡ Conductivity",
+                value=f"{conductivity:.0f} µS/cm",
+                delta=None
+            )
+            st.markdown(f"{conductivity_color} Status: {'Normal' if conductivity < 200 else 'High' if conductivity < 300 else 'Very High'}")
+        
+        with scol2:
+            tds = current_data.get('TDS', 0)
+            tds_color = '🟢' if tds < 150 else '🟡' if tds < 250 else '🔴'
+            st.metric(
+                label="🧂 TDS",
+                value=f"{tds:.0f} ppm",
+                delta=None
+            )
+            st.markdown(f"{tds_color} Status: {'Normal' if tds < 150 else 'Elevated' if tds < 250 else 'High'}")
+        
+        with scol3:
+            # Soil health composite score
+            health_factors = []
+            if 6.0 <= ph <= 7.5: health_factors.append(25)
+            elif 5.5 <= ph <= 8.0: health_factors.append(15)
+            else: health_factors.append(0)
+            
+            if 40 <= humidity <= 70: health_factors.append(25)
+            elif 30 <= humidity <= 80: health_factors.append(15)
+            else: health_factors.append(0)
+            
+            if conductivity < 200: health_factors.append(25)
+            elif conductivity < 300: health_factors.append(15)
+            else: health_factors.append(0)
+            
+            if npk_score >= 70: health_factors.append(25)
+            elif npk_score >= 40: health_factors.append(15)
+            else: health_factors.append(0)
+            
+            soil_health = sum(health_factors)
+            health_color = '🟢' if soil_health >= 80 else '🟡' if soil_health >= 60 else '🔴'
+            
+            st.metric(
+                label="🌱 Soil Health",
+                value=f"{soil_health}%",
+                delta=None
+            )
+            st.markdown(f"{health_color} Status: {'Excellent' if soil_health >= 80 else 'Good' if soil_health >= 60 else 'Needs Improvement'}")
+        
+        with scol4:
+            # Last sensor update
+            if 'timestamp' in current_data:
+                from datetime import datetime
+                try:
+                    timestamp = datetime.fromisoformat(current_data['timestamp'].replace('Z', '+00:00'))
+                    time_ago = datetime.now(timestamp.tzinfo) - timestamp
+                    minutes_ago = int(time_ago.total_seconds() / 60)
+                    
+                    update_color = '🟢' if minutes_ago < 10 else '🟡' if minutes_ago < 30 else '🔴'
+                    st.metric(
+                        label="🕐 Last Update",
+                        value=f"{minutes_ago} min ago",
+                        delta=None
+                    )
+                    st.markdown(f"{update_color} Status: {'Real-time' if minutes_ago < 10 else 'Recent' if minutes_ago < 30 else 'Delayed'}")
+                except:
+                    st.metric(label="🕐 Last Update", value="Unknown", delta=None)
+                    st.markdown("⚪ Status: Unknown")
+            else:
+                st.metric(label="🕐 Last Update", value="No data", delta=None)
+                st.markdown("🔴 Status: No timestamp")
         
         # Weather integration row
         if weather_data:
