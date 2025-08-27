@@ -103,9 +103,15 @@ class ThingSpeakAPI:
             
             # Filter by date range
             cutoff_date = datetime.now() - timedelta(days=days)
-            df = df[df['timestamp'] >= cutoff_date]
+            # Handle timezone-aware comparison
+            if not df.empty and len(df) > 0:
+                # Convert cutoff_date to match DataFrame timezone
+                if df['timestamp'].dtype.tz is not None:
+                    import pytz
+                    cutoff_date = cutoff_date.replace(tzinfo=pytz.UTC)
+                df = df[df['timestamp'] >= cutoff_date]
             
-            return df.sort_values('timestamp')
+            return df.sort_values('timestamp').reset_index(drop=True)
             
         except requests.exceptions.RequestException as e:
             st.error(f"Network error fetching historical data: {e}")

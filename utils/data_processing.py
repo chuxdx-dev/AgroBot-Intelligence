@@ -133,7 +133,9 @@ class DataProcessor:
         if 'timestamp' in data:
             try:
                 timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
-                time_diff = datetime.now(timestamp.tzinfo) - timestamp
+                # Use timezone-aware comparison
+                current_time = datetime.now(timestamp.tzinfo) if timestamp.tzinfo else datetime.now()
+                time_diff = current_time - timestamp
                 
                 if time_diff.total_seconds() < 300:  # 5 minutes
                     quality['freshness'] = 'excellent'
