@@ -141,10 +141,6 @@ def main():
         with tab4:
             st.header("📊 Real-time Analytics")
             
-            # Sensor gauges
-            st.subheader("📊 Sensor Readings")
-            viz.display_sensor_gauges(sensor_data)
-            
             # Statistical analysis
             if processed_data.get('statistics'):
                 st.subheader("📈 Statistical Analysis")
