@@ -108,10 +108,9 @@ def main():
         alerts.display_critical_alerts(processed_data, weather_data)
         
         # Main tabbed interface
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab1, tab2, tab4, tab5 = st.tabs([
             "🧠 AI Recommendations", 
             "🌤️ Weather Forecast", 
-            "📍 Location & Map", 
             "📊 Analytics", 
             "📈 History & Reports"
         ])
@@ -134,19 +133,7 @@ def main():
                 viz.display_comparison_charts(processed_data, weather_data, forecast_data)
             else:
                 st.warning("Weather data unavailable")
-        
-        with tab3:
-            st.header("📍 Robot Location & Field Map")
-            viz.display_location_map(lat, lon, weather_data)
-            
-            # Location details
-            st.subheader("📍 Coordinates")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Latitude", f"{lat:.6f}°N")
-            with col2:
-                st.metric("Longitude", f"{lon:.6f}°E")
-        
+
         with tab4:
             st.header("📊 Real-time Analytics")
             
@@ -210,3 +197,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
